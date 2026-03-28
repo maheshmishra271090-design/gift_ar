@@ -8,8 +8,7 @@
     <title>ExpRE</title>
 
     <!-- Impression Tracker -->
-    <script>var imp_track_ITGD = new Image();imp_track_ITGD.src = 'https://imptrack.intoday.in/impression_tracker.php?domain=AT&clientCode=501877&loop=1&rnd=' + Math.random();</script>
-    <noscript><img width="1" height="1" border="0" src="https://imptrack.intoday.in/impression_tracker.php?domain=AT&clientCode=501877&z=[timestamp]&rnd=[timestamp]"></noscript>
+    <noscript><img width="1" height="1" border="0" src=""></noscript>
 
     <!-- Preconnect / dns-prefetch for all external origins -->
     <link rel="preconnect" href="https://aframe.io" crossorigin>
@@ -19,8 +18,8 @@
     <link rel="dns-prefetch" href="https://cdn.aframe.io">
 
     <!-- Preload above-the-fold background images -->
-    <link rel="preload" as="image" href="https://raw.githubusercontent.com/Mahesh2710/ARData/main/DynamicData/poster/welcomeposter.png" fetchpriority="high">
-    <link rel="preload" as="image" href="https://raw.githubusercontent.com/Mahesh2710/ARData/main/DynamicData/poster/welcome.png">
+    <link rel="preload" as="image" href="https://raw.githubusercontent.com/maheshmishra271090-design/gift_ar/main/data/welcomeposter.png" fetchpriority="high">
+    <link rel="preload" as="image" href="https://raw.githubusercontent.com/maheshmishra271090-design/gift_ar/main/data/welcome.png">
 
     <style>
         body, html { 
@@ -33,7 +32,7 @@
         #welcome-page {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 100; 
-            background-image: url('https://raw.githubusercontent.com/Mahesh2710/ARData/main/DynamicData/poster/welcomeposter.png');
+            background-image: url('https://raw.githubusercontent.com/maheshmishra271090-design/gift_ar/main/data/welcomeposter.png');
             background-size: cover; background-position: center;
             display: flex; align-items: flex-end;
         }
@@ -194,7 +193,7 @@
 
 
     <script>
-        const API_URL = "https://akm-img-a-in.tosshub.com/app/at-app/at_dev/newicons/AR_expierence.json?rnd=" + Math.random() + "#?jnsdk";
+        const API_URL = "https://jsonmap.com/api/mock/ar?rnd=" + Math.random() + "#?jnsdk";
 
         const playBtn           = document.querySelector('#play-button');
         const welcomePage       = document.querySelector('#welcome-page');
@@ -240,7 +239,7 @@
                 if (!campaign) { errorScreen.style.display = 'flex'; return; }
 
                 campaignData = campaign;
-                campaignTitle.innerText = 'ExpRE';
+                campaignTitle.innerText = 'GiftAR';
                 dynamicScannerImg.src   = campaign.scannerImg;
 
                 // Set CTA background image and dynamically build click tracker URL
