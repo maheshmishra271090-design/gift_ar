@@ -5,19 +5,71 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>GiftAR</title>
+    <title>ExpRE</title>
 
-    <!-- Impression Tracker -->
-    <noscript><img width="1" height="1" border="0" src=""></noscript>
+    <!-- Firebase Analytics -->
+    <script type="module">
+        import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAnalytics, logEvent, setUserProperties } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdkDjVDG4lN-Uwt0l0kGYuh2x3z4pHmuc",
+  authDomain: "webar-e8b09.firebaseapp.com",
+  projectId: "webar-e8b09",
+  storageBucket: "webar-e8b09.firebasestorage.app",
+  messagingSenderId: "807208636455",
+  appId: "1:807208636455:web:337d72e4c4b8c8f74f3e02",
+  measurementId: "G-SG84SFPXSG"
+        };
+
+        const app       = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+
+        // Expose logEvent globally so the main script can call it
+        window._logEvent = (eventName, params) => {
+            try { logEvent(analytics, eventName, params); } catch(e) { console.warn('[Firebase]', e); }
+        };
+
+        // ── 1. MR Launch (page load = invoke count) ──────────────────────────────
+        // Covers: Total MR Launches, Entry Source Split via UTM params
+        const urlParams  = new URLSearchParams(window.location.search);
+        window._logEvent('ar_launch', {
+            campaign_id:     urlParams.get('id')     || 'unknown',
+            utm_source:      urlParams.get('utm_source')   || 'direct',
+            utm_medium:      urlParams.get('utm_medium')   || 'none',
+            utm_campaign:    urlParams.get('utm_campaign') || 'none',
+        });
+
+        // ── 2. Crash tracking via window.onerror + unhandledrejection ─────────────
+        // Covers: Crash Count, Crash Point (message + file + line)
+        window.addEventListener('error', (e) => {
+            window._logEvent('ar_crash', {
+                campaign_id:  urlParams.get('id') || 'unknown',
+                crash_message: e.message?.substring(0, 100) || 'unknown',
+                crash_file:    e.filename?.substring(0, 100) || 'unknown',
+                crash_line:    e.lineno || 0,
+                user_agent:    navigator.userAgent?.substring(0, 100) || 'unknown',
+            });
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+            window._logEvent('ar_crash', {
+                campaign_id:   urlParams.get('id') || 'unknown',
+                crash_message: String(e.reason)?.substring(0, 100) || 'unhandled_promise',
+                crash_file:    'promise',
+                crash_line:    0,
+                user_agent:    navigator.userAgent?.substring(0, 100) || 'unknown',
+            });
+        });
+    </script>
 
     <!-- Preconnect / dns-prefetch for all external origins -->
     <link rel="preconnect" href="https://aframe.io" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://akm-img-a-in.tosshub.com" crossorigin>
+    <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin>
     <link rel="dns-prefetch" href="https://raw.githubusercontent.com">
     <link rel="dns-prefetch" href="https://cdn.aframe.io">
 
-    <!-- Preload above-the-fold background images -->
+    <!-- Welcome poster preload injected dynamically after campaign JSON loads -->
     <link rel="preload" as="image" href="https://cdn.jsdelivr.net/gh/maheshmishra271090-design/gift_ar@main/data/welcomeposter.jpg" fetchpriority="high">
     <link rel="preload" as="image" href="https://raw.githubusercontent.com/maheshmishra271090-design/gift_ar/main/data/welcome.jpg">
 
@@ -41,17 +93,16 @@
             width: 100%; height: 50%; border-radius: 40px 40px 0 0; position: relative;
             display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 -15px 35px rgba(0,0,0,0.6);
-            background-image: url('https://raw.githubusercontent.com/maheshmishra271090-design/gift_ar/main/data/welcome.jpg');
-            background-size: 100% 100%; 
-            background-repeat: no-repeat;
-            background-position: center;
             transform: translateY(100%);
             animation: slideUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
         #sheet-content {
-            flex: 1; padding: 40px 30px;
-            background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%);
+            flex: 1;
+            background-image: url('https://raw.githubusercontent.com/maheshmishra271090-design/gift_ar/main/data/welcome.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center top;
             display: flex; flex-direction: column; justify-content: center;
         }
 
@@ -188,12 +239,12 @@
         <button onclick="location.reload()" style="margin-top:20px; padding:10px 25px; border-radius:20px; border:none; background:#4185f4; color:white; font-weight:bold;">Try Again</button>
     </div>
 
-    <a href="#" target="_blank" id="buy-now-cta"></a>
+    <a href="#" target="_blank" id="buy-now-cta" onclick="window._logEvent?.('ar_cta_click', { campaign_id: window._campaignId, campaign_name: window._campaignName });"></a>
     <div id="ar-scene-container"></div>
 
 
     <script>
-        const API_URL = "https://jsonmap.com/api/mock/ar";
+        const API_URL = "https://jsonmap.com/api/mock/ar?rnd=" + Math.random() + "#?jnsdk";
 
         const playBtn           = document.querySelector('#play-button');
         const welcomePage       = document.querySelector('#welcome-page');
@@ -239,11 +290,20 @@
                 if (!campaign) { errorScreen.style.display = 'flex'; return; }
 
                 campaignData = campaign;
-                campaignTitle.innerText = 'GiftAR';
+                window._campaignId   = campaign.id;
+                window._campaignName = campaign.campaignName;
+                campaignTitle.innerText = 'ExpRE';
                 dynamicScannerImg.src   = campaign.scannerImg;
 
-                // Set CTA background image and dynamically build click tracker URL
-                buyNowBtn.style.backgroundImage = `url('${campaign.CTAimgUrl}')`;
+                // Set CTA — use clickTrackerUrl from JSON if available, else fall back to CTAredirectUrl directly
+                if (campaign.CTAimgUrl) {
+                    buyNowBtn.style.backgroundImage = `url('${campaign.CTAimgUrl}')`;
+                }
+                if (campaign.clickTrackerUrl) {
+                    buyNowBtn.href = campaign.clickTrackerUrl;
+                } else if (campaign.CTAredirectUrl) {
+                    buyNowBtn.href = campaign.CTAredirectUrl;
+                }
 
                 prefetchARScripts();
 
@@ -361,6 +421,10 @@
                 arStarted = true;
                 loadingOverlay.style.display = 'none';
                 scannerUi.style.display      = 'flex';
+
+                // ── 4. AR Ready — camera live, user can now scan ──────────────────
+                window._logEvent?.('ar_ready', { campaign_id: campaign.id });
+
                 const arSystem = sceneEl.systems['mindar-image-system'];
                 if (arSystem) arSystem.start();
             }
@@ -381,9 +445,20 @@
 
             const targetEntity = document.querySelector('#target-entity');
 
+            let impressionFired    = false;
+            let videoMilestones   = new Set();
+            const pageLoadTime    = Date.now();
+            let   arReadyTime     = null;
+            let   targetFoundTime = null;
+
+            // Track when AR actually became ready (camera live)
+            sceneEl.addEventListener('renderstart', () => { arReadyTime = Date.now(); }, { once: true });
+
             targetEntity.addEventListener('targetFound', () => {
                 hasFoundOnce    = true;
                 isStickyEnabled = true;
+                targetFoundTime = Date.now();
+
                 scannerUi.style.display      = 'none';
                 videoContainer.style.display = 'none';
                 buyNowBtn.style.display      = 'block';
@@ -395,6 +470,51 @@
                 arTextUI.components['force-front-facing']?.activate();
 
                 if (video.readyState === 0) video.load();
+
+                // ── 5. Impression tracker + Firebase video_play (first time only) ─
+                if (!impressionFired && campaign.impressionTrackerUrl) {
+                    const fireImpression = () => {
+                        impressionFired = true;
+
+                        // Pixel impression tracker
+                        const imp = new Image();
+                        imp.src = campaign.impressionTrackerUrl.replace('[timestamp]', Date.now()) + '&rnd=' + Math.random();
+                        console.log('[Tracker] Impression fired:', imp.src);
+                        video.removeEventListener('playing', fireImpression);
+
+                        // ── 6. Avg Time to Scan (AR ready → target found) ─────────
+                        const timeToScan = arReadyTime ? (targetFoundTime - arReadyTime) : null;
+
+                        // ── 7. Scan-to-Load Success Rate (page load → video plays) ─
+                        const timeToLoad = Date.now() - pageLoadTime;
+
+                        window._logEvent?.('ar_video_play', {
+                            campaign_id:      campaign.id,
+                            campaign_name:    campaign.campaignName,
+                            time_to_scan_ms:  timeToScan,
+                            time_to_load_ms:  timeToLoad,
+                        });
+                    };
+                    video.addEventListener('playing', fireImpression);
+                }
+
+                // ── 8. Video completion milestones (0,10,25,50,75,100%) ───────────
+                // Re-attach timeupdate each targetFound (video may have been moved in DOM)
+                video.addEventListener('timeupdate', () => {
+                    if (!video.duration) return;
+                    const pct = (video.currentTime / video.duration) * 100;
+                    for (const milestone of [0, 10, 25, 50, 75, 100]) {
+                        if (pct >= milestone && !videoMilestones.has(milestone)) {
+                            videoMilestones.add(milestone);
+                            window._logEvent?.('ar_video_progress', {
+                                campaign_id:   campaign.id,
+                                campaign_name: campaign.campaignName,
+                                percent:       milestone,
+                            });
+                        }
+                    }
+                });
+
                 video.play();
             });
 
@@ -430,6 +550,12 @@
         playBtn.addEventListener('click', async () => {
             if (!campaignData) return;
 
+            // ── 3. AR Session Start (Play tapped) ────────────────────────────────
+            window._logEvent?.('ar_session_start', {
+                campaign_id:   campaignData.id,
+                campaign_name: campaignData.campaignName,
+            });
+
             loadingOverlay.style.display = 'flex';
             loadingMsg.textContent = 'Loading AR Experience…';
 
@@ -448,3 +574,4 @@
     </script>
 </body>
 </html>
+
